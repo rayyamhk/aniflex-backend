@@ -28,7 +28,7 @@ export class SerieController {
   ) {
     const series = await this.serieService.getAllSeries(limit, {
       namespace: 'SerieController:getSeries',
-      ttl: 1000 * 60 * 60, // 1 hr
+      ttl: 1000 * 60 * 30, // 30 min
     });
     const formattedSeries = series.map((item) =>
       this.serieService.getPublicSerie(item),

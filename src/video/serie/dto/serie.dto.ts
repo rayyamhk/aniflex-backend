@@ -15,7 +15,7 @@ import {
  *  episodes: number
  *  publishedAt: string
  *  uploadedAt: string
- *  tags: number[]
+ *  tags: string[]
  * }
  */
 
@@ -29,9 +29,9 @@ export class CreateSerieDTO {
   @IsDateString()
   publishedAt: string;
 
-  @IsInt({ each: true })
+  @IsString({ each: true })
   @IsOptional()
-  tags?: number[];
+  tags?: string[];
 }
 
 export class UpdateSerieDTO {
@@ -54,9 +54,9 @@ export class UpdateSerieDTO {
   @IsDateString()
   uploadedAt: string;
 
-  @IsInt({ each: true })
+  @IsString({ each: true })
   @IsOptional()
-  tags?: number[];
+  tags?: string[];
 
   @IsInt()
   @Min(0)

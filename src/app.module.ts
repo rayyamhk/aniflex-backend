@@ -9,6 +9,7 @@ import { EpisodeModule } from './video/episode/episode.module';
 import { ChunksModule } from './video/chunks/chunks.module';
 import { UtilsModule } from './utils/utils.module';
 import { MetadataModule } from './video/metadata/metadata.module';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -48,5 +49,6 @@ import { MetadataModule } from './video/metadata/metadata.module';
     ChunksModule,
     MetadataModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}

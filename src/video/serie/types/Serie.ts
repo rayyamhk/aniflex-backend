@@ -6,5 +6,5 @@ export type Serie = {
   publishedAt: string;
   uploadedAt: string;
   views: number;
-  tags?: number[];
+  tags?: string[];
 };

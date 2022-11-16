@@ -19,7 +19,7 @@ export class MetadataService {
   async getEpisodeMetadata(id: string, episode: number) {
     const serie = await this.serieService.getSerie(id, {
       namespace: 'MetadataService:getEpisodeMetadata',
-      ttl: 1000 * 60 * 10, // 10 min
+      ttl: 1000 * 60 * 5, // 5 min
     });
     if (!serie) {
       throw new NotFoundException(`Serie not found (id: ${id})`);
@@ -35,7 +35,7 @@ export class MetadataService {
       id: serie.id,
       title: serie.title,
       description: serie.description,
-      thumbnail: await this.thumbnailService.getThumbnailPath(serie.id, 0),
+      thumbnail: this.thumbnailService.getThumbnailPath(serie.id, 0),
       tags: serie.tags || [],
       episodes: episodes.map((item) =>
         this.episodeService.getPublicEpisode(item),
