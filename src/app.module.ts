@@ -3,12 +3,12 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { ThumbnailModule } from './thumbnail/thumbnail.module';
-import { SerieModule } from './video/serie/serie.module';
-import { EpisodeModule } from './video/episode/episode.module';
-import { ChunksModule } from './video/chunks/chunks.module';
-import { UtilsModule } from './utils/utils.module';
-import { MetadataModule } from './video/metadata/metadata.module';
+import { ThumbnailModule } from './modules/thumbnail/thumbnail.module';
+import { SeriesModule } from './modules/series/series.module';
+import { EpisodesModule } from './modules/episodes/episodes.module';
+import { VideosModule } from './modules/videos/videos.module';
+import { UtilsModule } from './modules/utils/utils.module';
+import { MetadataModule } from './modules/metadata/metadata.module';
 import { AppController } from './app.controller';
 
 @Module({
@@ -44,9 +44,9 @@ import { AppController } from './app.controller';
     }),
     UtilsModule,
     ThumbnailModule,
-    SerieModule,
-    EpisodeModule,
-    ChunksModule,
+    SeriesModule,
+    EpisodesModule,
+    VideosModule,
     MetadataModule,
   ],
   controllers: [AppController],

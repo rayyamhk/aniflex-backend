@@ -1,23 +1,23 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { ThumbnailService } from '../../thumbnail/thumbnail.service';
-import { EpisodeService } from '../episode/episode.service';
-import { SerieService } from '../serie/serie.service';
+import { ThumbnailService } from '../thumbnail/thumbnail.service';
+import { EpisodesService } from '../episodes/episodes.service';
+import { SeriesService } from '../series/series.service';
 
 @Injectable()
 export class MetadataService {
   constructor(
-    private readonly serieService: SerieService,
-    private readonly episodeService: EpisodeService,
+    private readonly seriesService: SeriesService,
+    private readonly episodesService: EpisodesService,
     private readonly thumbnailService: ThumbnailService,
   ) {}
 
   async getAllEpisodesMetadata() {
-    const episodes = await this.episodeService.getAllEpisodes();
-    return episodes.map((item) => this.episodeService.getPublicEpisode(item));
+    const episodes = await this.episodesService.getAllEpisodes();
+    return episodes.map((item) => this.episodesService.getPublicEpisode(item));
   }
 
   async getEpisodeMetadata(id: string, episode: number) {
-    const serie = await this.serieService.getSerie(id, {
+    const serie = await this.seriesService.getSerie(id, {
       namespace: 'MetadataService:getEpisodeMetadata',
       ttl: 1000 * 60 * 5, // 5 min
     });
@@ -27,7 +27,7 @@ export class MetadataService {
     if (episode > serie.episodes) {
       throw new NotFoundException(`Episode not found (episode: ${episode})`);
     }
-    const episodes = await this.episodeService.getEpisodes(id, {
+    const episodes = await this.episodesService.getEpisodes(id, {
       namespace: 'MetadataService:getEpisodeMetadata',
       ttl: 1000 * 60 * 5, // 5 min
     });
@@ -38,7 +38,7 @@ export class MetadataService {
       thumbnail: this.thumbnailService.getThumbnailPath(serie.id, 0),
       tags: serie.tags || [],
       episodes: episodes.map((item) =>
-        this.episodeService.getPublicEpisode(item),
+        this.episodesService.getPublicEpisode(item),
       ),
     };
     return data;

@@ -8,17 +8,17 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
-import { UtilsService } from '../../utils/utils.service';
-import { ChunksService } from './chunks.service';
+import { UtilsService } from '../utils/utils.service';
+import { VideosService } from './videos.service';
 import { VideoInterceptor } from './interceptors/video.interceptor';
 import { AnimeId } from '../../decorators/animeId.decorator';
 import { AnimeEpisode } from '../../decorators/animeEpisode.decorator';
 import { ValidateExistencePipe } from '../../pipes/validateExistence.pipe';
 
-@Controller('videos/chunks')
-export class ChunksController {
+@Controller('videos')
+export class VideosController {
   constructor(
-    private readonly chunksService: ChunksService,
+    private readonly videosService: VideosService,
     private readonly utilsService: UtilsService,
   ) {}
 
@@ -30,8 +30,8 @@ export class ChunksController {
     @AnimeId() id: string,
     @AnimeEpisode() episode: number,
   ) {
-    await this.chunksService.prepareEnvironment(id, episode, video);
-    this.chunksService.processVideo(id, episode, video); // process in the background without blocking the request
+    await this.videosService.prepareEnvironment(id, episode, video);
+    this.videosService.processVideo(id, episode, video); // process in the background without blocking the request
     return this.utilsService.formatResponse(
       `Video uploaded (id: ${id}, episode: ${episode}), it may take a while to process the video.`,
     );
@@ -45,8 +45,8 @@ export class ChunksController {
     @AnimeId() id: string,
     @AnimeEpisode() episode: number,
   ) {
-    await this.chunksService.prepareEnvironment(id, episode, video);
-    this.chunksService.processVideo(id, episode, video); // process in the background without blocking the request
+    await this.videosService.prepareEnvironment(id, episode, video);
+    this.videosService.processVideo(id, episode, video); // process in the background without blocking the request
     return this.utilsService.formatResponse(
       `Video updated (id: ${id}, episode: ${episode}), it may take a while to process the video.`,
     );
@@ -54,7 +54,7 @@ export class ChunksController {
 
   @Delete()
   async deleteChunks(@AnimeId() id: string, @AnimeEpisode() episode: number) {
-    await this.chunksService.deleteChunks(id, episode);
+    await this.videosService.deleteChunks(id, episode);
     return this.utilsService.formatResponse(
       `Video deleted (id: ${id}, episode: ${episode})`,
     );

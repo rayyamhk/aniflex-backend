@@ -7,11 +7,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
-import { UtilsService } from '../../utils/utils.service';
+import { UtilsService } from '../utils/utils.service';
 import { MetadataService } from './metadata.service';
 import { ParsePositiveIntPipe } from '../../pipes/parsePositiveInt.pipe';
 
-@Controller('videos/metadata')
+@Controller('metadata')
 @UseGuards(ThrottlerGuard)
 export class MetadataController {
   constructor(

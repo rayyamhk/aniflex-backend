@@ -9,9 +9,9 @@ import {
 import { ThumbnailService } from './thumbnail.service';
 import { UtilsService } from '../utils/utils.service';
 import { ThumbnailInterceptor } from './interceptors/thumbnail.interceptor';
-import { AnimeEpisode } from '../decorators/animeEpisode.decorator';
-import { AnimeId } from '../decorators/animeId.decorator';
-import { ValidateExistencePipe } from '../pipes/validateExistence.pipe';
+import { AnimeEpisode } from '../../decorators/animeEpisode.decorator';
+import { AnimeId } from '../../decorators/animeId.decorator';
+import { ValidateExistencePipe } from '../../pipes/validateExistence.pipe';
 
 @Controller('thumbnails')
 export class ThumbnailController {

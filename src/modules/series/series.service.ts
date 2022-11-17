@@ -7,13 +7,13 @@ import {
 import {
   CacheSettings,
   DatabaseService,
-} from '../../database/database.service';
+} from '../database/database.service';
 import { Serie } from './types/Serie';
 import { CreateSerieDTO, UpdateSerieDTO } from './dto/serie.dto';
-import { ThumbnailService } from '../../thumbnail/thumbnail.service';
+import { ThumbnailService } from '../thumbnail/thumbnail.service';
 
 @Injectable()
-export class SerieService {
+export class SeriesService {
   constructor(
     private readonly databaseService: DatabaseService<Serie>,
     private readonly thumbnailService: ThumbnailService,

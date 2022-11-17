@@ -7,19 +7,19 @@ import {
 import {
   CacheSettings,
   DatabaseService,
-} from '../../database/database.service';
-import { SerieService } from '../serie/serie.service';
+} from '../database/database.service';
+import { SeriesService } from '../series/series.service';
 import { Episode } from './types/Episode';
 import { CreateEpisodeDTO, UpdateEpisodeDTO } from './dto/episode.dto';
-import { ChunksService } from '../chunks/chunks.service';
-import { ThumbnailService } from 'src/thumbnail/thumbnail.service';
+import { VideosService } from '../videos/videos.service';
+import { ThumbnailService } from 'src/modules/thumbnail/thumbnail.service';
 
 @Injectable()
-export class EpisodeService {
+export class EpisodesService {
   constructor(
     private readonly databaseService: DatabaseService<Episode>,
-    private readonly serieService: SerieService,
-    private readonly chunksService: ChunksService,
+    private readonly seriesService: SeriesService,
+    private readonly videosService: VideosService,
     private readonly thumbnailService: ThumbnailService,
   ) {}
 
@@ -44,13 +44,13 @@ export class EpisodeService {
         episode.id,
         episode.episode,
       ),
-      video: this.chunksService.getVideoPath(episode.id, episode.episode),
+      video: this.videosService.getVideoPath(episode.id, episode.episode),
     };
   }
 
   async createEpisode(body: CreateEpisodeDTO) {
     const { id, episode } = body;
-    const existedSerie = await this.serieService.getSerie(id);
+    const existedSerie = await this.seriesService.getSerie(id);
     if (!existedSerie) {
       throw new NotFoundException(`Serie not found (id: ${id})`);
     }
@@ -69,7 +69,7 @@ export class EpisodeService {
       ...body,
     };
     await this.databaseService.putItem(createdEpisode);
-    await this.serieService.updateSerie({
+    await this.seriesService.updateSerie({
       ...existedSerie,
       episodes: existedSerie.episodes + 1,
     });
@@ -112,7 +112,7 @@ export class EpisodeService {
         `Episode not found (id: ${id}, episode: ${episode})`,
       );
     }
-    const existedSerie = await this.serieService.getSerie(id);
+    const existedSerie = await this.seriesService.getSerie(id);
 
     // episode exists imples serie exists,
     // therefore it must not be null.
@@ -124,7 +124,7 @@ export class EpisodeService {
       partitionKey: ['id', id],
       sortKey: ['episode', episode],
     });
-    await this.serieService.updateSerie({
+    await this.seriesService.updateSerie({
       ...existedSerie,
       episodes: existedSerie.episodes - 1,
     });

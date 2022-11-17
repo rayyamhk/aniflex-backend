@@ -7,7 +7,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 const execAsync = util.promisify(exec);
 
 @Injectable()
-export class ChunksService {
+export class VideosService {
   getVideoPath(id: string, episode: number) {
     return `/public/videos/${id}/${episode}/video.mpd`;
   }
