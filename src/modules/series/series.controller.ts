@@ -1,16 +1,15 @@
 import {
   Body,
   Controller,
-  DefaultValuePipe,
   Delete,
   Get,
+  Param,
   ParseUUIDPipe,
   Post,
   Put,
-  Query,
 } from '@nestjs/common';
+import { Public } from '../../decorators/public.decorator';
 import { UtilsService } from '../utils/utils.service';
-import { ParsePositiveIntPipe } from '../../pipes/parsePositiveInt.pipe';
 import { CreateSerieDTO, UpdateSerieDTO } from './dto/serie.dto';
 import { SeriesService } from './series.service';
 
@@ -21,24 +20,28 @@ export class SeriesController {
     private readonly utilsService: UtilsService,
   ) {}
 
-  @Get()
-  async getSeries(
-    @Query('limit', new DefaultValuePipe(12), ParsePositiveIntPipe)
-    limit: number,
+  @Public()
+  @Get('id')
+  async getSerie(
+    @Param('id', ParseUUIDPipe) id: string,
   ) {
-    const series = await this.seriesService.getAllSeries(limit, {
-      namespace: 'SerieController:getSeries',
-      ttl: 1000 * 60 * 30, // 30 min
+    const serie = await this.seriesService.get(id, {
+      ttl: 1000 * 60 * 5,
+      namespace: 'SeriesController:getSerie',
     });
-    const formattedSeries = series.map((item) =>
-      this.seriesService.getPublicSerie(item),
-    );
-    return this.utilsService.formatResponse(null, formattedSeries);
+    return serie;
+  }
+
+  // Should be protected.
+  @Get()
+  async getSeries() {
+    const series = await this.seriesService.getAll();
+    return this.utilsService.formatResponse(null, series);
   }
 
   @Post()
   async createSerie(@Body() body: CreateSerieDTO) {
-    const serie = await this.seriesService.createSerie(body);
+    const serie = await this.seriesService.create(body);
     return this.utilsService.formatResponse(
       `Serie created (id: ${serie.id})`,
       serie,
@@ -47,7 +50,7 @@ export class SeriesController {
 
   @Put()
   async updateSerie(@Body() serie: UpdateSerieDTO) {
-    await this.seriesService.updateSerie(serie);
+    await this.seriesService.update(serie);
     return this.utilsService.formatResponse(
       `Serie updated (id: ${serie.id})`,
       serie,
@@ -56,7 +59,7 @@ export class SeriesController {
 
   @Delete()
   async deleteSerie(@Body('id', ParseUUIDPipe) id: string) {
-    const deletedSerie = await this.seriesService.deleteSerie(id);
+    const deletedSerie = await this.seriesService.delete(id);
     return this.utilsService.formatResponse(
       `Serie deleted (id: ${id})`,
       deletedSerie,

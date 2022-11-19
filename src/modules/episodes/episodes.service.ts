@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   InternalServerErrorException,
@@ -11,16 +12,12 @@ import {
 import { SeriesService } from '../series/series.service';
 import { Episode } from './types/Episode';
 import { CreateEpisodeDTO, UpdateEpisodeDTO } from './dto/episode.dto';
-import { VideosService } from '../videos/videos.service';
-import { ThumbnailService } from 'src/modules/thumbnail/thumbnail.service';
 
 @Injectable()
 export class EpisodesService {
   constructor(
     private readonly databaseService: DatabaseService<Episode>,
     private readonly seriesService: SeriesService,
-    private readonly videosService: VideosService,
-    private readonly thumbnailService: ThumbnailService,
   ) {}
 
   /**
@@ -37,20 +34,9 @@ export class EpisodesService {
     return await this.databaseService.getAllItems();
   }
 
-  getPublicEpisode(episode: Episode) {
-    return {
-      ...episode,
-      thumbnail: this.thumbnailService.getThumbnailPath(
-        episode.id,
-        episode.episode,
-      ),
-      video: this.videosService.getVideoPath(episode.id, episode.episode),
-    };
-  }
-
-  async createEpisode(body: CreateEpisodeDTO) {
+  async create(body: CreateEpisodeDTO) {
     const { id, episode } = body;
-    const existedSerie = await this.seriesService.getSerie(id);
+    const existedSerie = await this.seriesService.get(id);
     if (!existedSerie) {
       throw new NotFoundException(`Serie not found (id: ${id})`);
     }
@@ -69,14 +55,14 @@ export class EpisodesService {
       ...body,
     };
     await this.databaseService.putItem(createdEpisode);
-    await this.seriesService.updateSerie({
+    await this.seriesService.update({
       ...existedSerie,
       episodes: existedSerie.episodes + 1,
     });
     return createdEpisode;
   }
 
-  async updateEpisode(newEpisode: UpdateEpisodeDTO) {
+  async update(newEpisode: UpdateEpisodeDTO) {
     const { id, episode } = newEpisode;
     const originalEpisode = await this.databaseService.getItemByPrimaryKey({
       partitionKey: ['id', id],
@@ -93,8 +79,8 @@ export class EpisodesService {
         updateFieldsCount += 1;
       }
     });
-    if (updateFieldsCount === 0) {
-      throw new ConflictException(
+    if (updateFieldsCount === 0 && Object.keys(originalEpisode).length === Object.keys(newEpisode).length) {
+      throw new BadRequestException(
         'Episode update is unnecessary (nothing is changed)',
       );
     }
@@ -102,7 +88,7 @@ export class EpisodesService {
     return newEpisode;
   }
 
-  async deleteEpisode(id: string, episode: number) {
+  async delete(id: string, episode: number) {
     const existedEpisode = await this.databaseService.getItemByPrimaryKey({
       partitionKey: ['id', id],
       sortKey: ['episode', episode],
@@ -112,7 +98,7 @@ export class EpisodesService {
         `Episode not found (id: ${id}, episode: ${episode})`,
       );
     }
-    const existedSerie = await this.seriesService.getSerie(id);
+    const existedSerie = await this.seriesService.get(id);
 
     // episode exists imples serie exists,
     // therefore it must not be null.
@@ -124,7 +110,7 @@ export class EpisodesService {
       partitionKey: ['id', id],
       sortKey: ['episode', episode],
     });
-    await this.seriesService.updateSerie({
+    await this.seriesService.update({
       ...existedSerie,
       episodes: existedSerie.episodes - 1,
     });

@@ -1,9 +1,19 @@
-import { IsDateString, IsInt, IsString, IsUUID, Min } from 'class-validator';
+import {
+  IsDateString,
+  IsInt,
+  IsString,
+  IsUUID,
+  Matches,
+  Min,
+} from 'class-validator';
+import { IMAGE_KEY_REGEX } from '../../../constants';
+
 
 /**
  * id: string,
  * episode: number,
  * title: string,
+ * thumbnail: string,
  * publishedAt: string,
  * uploadedAt: string,
  * views: number,
@@ -20,6 +30,9 @@ export class CreateEpisodeDTO {
   @IsString()
   title: string;
 
+  @Matches(IMAGE_KEY_REGEX)
+  thumbnail: string;
+
   @IsDateString()
   publishedAt: string;
 }
@@ -34,6 +47,9 @@ export class UpdateEpisodeDTO {
 
   @IsString()
   title: string;
+
+  @Matches(IMAGE_KEY_REGEX)
+  thumbnail: string;
 
   @IsDateString()
   publishedAt: string;

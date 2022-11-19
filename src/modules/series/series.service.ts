@@ -1,6 +1,6 @@
 import * as crypto from 'node:crypto';
 import {
-  ConflictException,
+  BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -10,34 +10,23 @@ import {
 } from '../database/database.service';
 import { Serie } from './types/Serie';
 import { CreateSerieDTO, UpdateSerieDTO } from './dto/serie.dto';
-import { ThumbnailService } from '../thumbnail/thumbnail.service';
 
 @Injectable()
 export class SeriesService {
-  constructor(
-    private readonly databaseService: DatabaseService<Serie>,
-    private readonly thumbnailService: ThumbnailService,
-  ) {}
+  constructor(private readonly databaseService: DatabaseService<Serie>) {}
 
-  async getSerie(id: string, cacheSettings?: CacheSettings) {
+  async get(id: string, cacheSettings?: CacheSettings) {
     return await this.databaseService.getItemByPrimaryKey(
       { partitionKey: ['id', id] },
       cacheSettings,
     );
   }
 
-  async getAllSeries(limit?: number, cacheSettings?: CacheSettings) {
-    return await this.databaseService.getAllItems(limit, cacheSettings);
+  async getAll() {
+    return await this.databaseService.getAllItems();
   }
 
-  getPublicSerie(serie: Serie) {
-    return {
-      ...serie,
-      thumbnail: this.thumbnailService.getThumbnailPath(serie.id, 0),
-    };
-  }
-
-  async createSerie(body: CreateSerieDTO) {
+  async create(body: CreateSerieDTO) {
     const createdSerie: Serie = {
       id: crypto.randomUUID(),
       episodes: 0,
@@ -49,7 +38,7 @@ export class SeriesService {
     return createdSerie;
   }
 
-  async updateSerie(newSerie: UpdateSerieDTO) {
+  async update(newSerie: UpdateSerieDTO) {
     const id = newSerie.id;
     const originalSerie = await this.databaseService.getItemByPrimaryKey({
       partitionKey: ['id', id],
@@ -63,8 +52,8 @@ export class SeriesService {
         updateFieldsCount += 1;
       }
     });
-    if (updateFieldsCount === 0) {
-      throw new ConflictException(
+    if (updateFieldsCount === 0 && Object.keys(originalSerie).length === Object.keys(newSerie).length) {
+      throw new BadRequestException(
         'Serie update is unnecessary (nothing is changed)',
       );
     }
@@ -72,7 +61,7 @@ export class SeriesService {
     return newSerie;
   }
 
-  async deleteSerie(id: string) {
+  async delete(id: string) {
     const existedSerie = await this.databaseService.getItemByPrimaryKey({
       partitionKey: ['id', id],
     });

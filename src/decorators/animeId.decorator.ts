@@ -4,9 +4,7 @@ import {
   ExecutionContext,
 } from '@nestjs/common';
 import { Request } from 'express';
-
-const UUID_REGEX =
-  /[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}/;
+import { UUID_REGEX } from '../constants';
 
 export const AnimeId = createParamDecorator(
   (data: unknown, ctx: ExecutionContext) => {

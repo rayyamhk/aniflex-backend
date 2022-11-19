@@ -10,9 +10,8 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
+import { UUID_REGEX } from '../../../constants';
 
-const UUID_REGEX =
-  /[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}/;
 const multerConfig = {
   storage: diskStorage({
     destination: (req, file, cb) => cb(null, 'temp/'),

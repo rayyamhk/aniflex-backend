@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import { ValidationPipe } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
+import { NestFactory, Reflector } from '@nestjs/core';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { AuthGuard } from './guards/auth.guard';
@@ -11,15 +11,12 @@ async function bootstrap() {
     await fs.promises.mkdir('temp');
   }
 
-  if (!fs.existsSync('static/thumbnails')) {
-    await fs.promises.mkdir('static/thumbnails', { recursive: true });
-  }
-
   if (!fs.existsSync('static/videos')) {
     await fs.promises.mkdir('static/videos', { recursive: true });
   }
 
   const app = await NestFactory.create(AppModule);
+  const reflector = app.get(Reflector);
   app.use(
     helmet({
       crossOriginResourcePolicy: false,
@@ -32,7 +29,7 @@ async function bootstrap() {
       whitelist: true, // remove unnecessary fields
     }),
   );
-  app.useGlobalGuards(new AuthGuard());
+  app.useGlobalGuards(new AuthGuard(reflector));
   app.enableCors({
     origin: '*',
     methods: 'GET,POST,PUT,DELETE',

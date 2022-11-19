@@ -4,19 +4,23 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   Min,
 } from 'class-validator';
+import { IMAGE_KEY_REGEX } from '../../../constants';
 
 /**
- * {
- *  id: string
- *  title: string
- *  description: string
- *  episodes: number
- *  publishedAt: string
- *  uploadedAt: string
- *  tags: string[]
- * }
+{
+  id: string;
+  title: string;
+  description: string;
+  episodes: number;
+  thumbnail: string;
+  publishedAt: string;
+  uploadedAt: string;
+  views: number;
+  tags?: string[];
+};
  */
 
 export class CreateSerieDTO {
@@ -25,6 +29,9 @@ export class CreateSerieDTO {
 
   @IsString()
   description: string;
+
+  @Matches(IMAGE_KEY_REGEX)
+  thumbnail: string;
 
   @IsDateString()
   publishedAt: string;
@@ -47,6 +54,9 @@ export class UpdateSerieDTO {
   @IsInt()
   @Min(0)
   episodes: number;
+
+  @Matches(IMAGE_KEY_REGEX)
+  thumbnail: string;
 
   @IsDateString()
   publishedAt: string;

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put } from '@nestjs/common';
 import {
   CreateEpisodeDTO,
   DeleteEpisodeDTO,
@@ -6,6 +6,7 @@ import {
 } from './dto/episode.dto';
 import { UtilsService } from '../utils/utils.service';
 import { EpisodesService } from './episodes.service';
+import { Public } from '../../decorators/public.decorator';
 
 @Controller('episodes')
 export class EpisodesController {
@@ -14,9 +15,34 @@ export class EpisodesController {
     private readonly utilsService: UtilsService,
   ) {}
 
+  @Public()
+  @Get(':id')
+  async getEpisodes(
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    const episodes = await this.episodesService.getEpisodes(id, {
+      ttl: 1000 * 60 * 5,
+      namespace: 'EpisodesController:getEpisodes',
+    });
+    return episodes.map((episode) => ({
+      ...episode,
+      video: `/public/videos/${episode.id}/${episode.episode}`,
+    }));
+  }
+
+  // Should be protected.
+  @Get()
+  async getAllEpisodes() {
+    const episodes = await this.episodesService.getAllEpisodes();
+    return episodes.map((episode) => ({
+      ...episode,
+      video: `/public/videos/${episode.id}/${episode.episode}`,
+    }));
+  }
+
   @Post()
   async createEpisode(@Body() body: CreateEpisodeDTO) {
-    const episode = await this.episodesService.createEpisode(body);
+    const episode = await this.episodesService.create(body);
     return this.utilsService.formatResponse(
       `Episode created (id: ${episode.id}, episode: ${episode.episode})`,
       episode,
@@ -25,7 +51,7 @@ export class EpisodesController {
 
   @Put()
   async updateEpisode(@Body() episode: UpdateEpisodeDTO) {
-    await this.episodesService.updateEpisode(episode);
+    await this.episodesService.update(episode);
     return this.utilsService.formatResponse(
       `Episode updated (id: ${episode.id}, episode: ${episode.episode})`,
       episode,
@@ -35,7 +61,7 @@ export class EpisodesController {
   @Delete()
   async deleteEpisode(@Body() primaryKey: DeleteEpisodeDTO) {
     const { id, episode } = primaryKey;
-    const deletedEpisode = await this.episodesService.deleteEpisode(id, episode);
+    const deletedEpisode = await this.episodesService.delete(id, episode);
     return this.utilsService.formatResponse(
       `Episode deleted (id: ${id}, episode: ${episode})`,
       deletedEpisode,

@@ -3,13 +3,12 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ThrottlerModule } from '@nestjs/throttler';
-import { ThumbnailModule } from './modules/thumbnail/thumbnail.module';
 import { SeriesModule } from './modules/series/series.module';
 import { EpisodesModule } from './modules/episodes/episodes.module';
 import { VideosModule } from './modules/videos/videos.module';
 import { UtilsModule } from './modules/utils/utils.module';
-import { MetadataModule } from './modules/metadata/metadata.module';
 import { AppController } from './app.controller';
+import { ImagesModule } from './modules/images/images.module';
 
 @Module({
   imports: [
@@ -43,11 +42,10 @@ import { AppController } from './app.controller';
       },
     }),
     UtilsModule,
-    ThumbnailModule,
     SeriesModule,
     EpisodesModule,
     VideosModule,
-    MetadataModule,
+    ImagesModule,
   ],
   controllers: [AppController],
 })
