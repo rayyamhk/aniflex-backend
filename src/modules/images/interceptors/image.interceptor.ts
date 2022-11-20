@@ -3,9 +3,7 @@ import {
   UnsupportedMediaTypeException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { IMAGE_MIMETYPE_REGEX } from '../../../constants';
-
-const MAX_SIZE = 1024 * 1024 * 1; // 1MB
+import { IMAGE_MIMETYPE_REGEX, MAX_IMAGE_SIZE } from '../../../constants';
 
 export const ImageIntersecptor = FileInterceptor('image', {
   fileFilter: (req, file, cb) => {
@@ -15,11 +13,8 @@ export const ImageIntersecptor = FileInterceptor('image', {
         false,
       );
     }
-    if (Number(req.get('content-length')) > MAX_SIZE) {
-      return cb(
-        new PayloadTooLargeException('Only image less than 1MB is accepted.'),
-        false,
-      );
+    if (Number(req.get('content-length')) > MAX_IMAGE_SIZE) {
+      return cb(new PayloadTooLargeException('Image too large.'), false);
     }
     cb(null, true);
   },

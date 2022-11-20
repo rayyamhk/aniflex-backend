@@ -1,62 +1,73 @@
+import * as path from 'node:path';
 import {
+  Body,
   Controller,
   Delete,
+  Get,
   HttpCode,
   HttpStatus,
+  NotFoundException,
+  Param,
   Post,
-  Put,
+  Res,
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
 import { UtilsService } from '../utils/utils.service';
 import { VideosService } from './videos.service';
 import { VideoInterceptor } from './interceptors/video.interceptor';
-import { AnimeId } from '../../decorators/animeId.decorator';
-import { AnimeEpisode } from '../../decorators/animeEpisode.decorator';
 import { ValidateExistencePipe } from '../../pipes/validateExistence.pipe';
+import { ValidateKeyPipe } from '../../pipes/validateKey.pipe';
+import { Response } from 'express';
+import { StorageService } from '../storage/storage.service';
+import { Public } from '../../decorators/public.decorator';
+import { ValidateChunkNamePipe } from './pipes/chunkName.validate';
 
 @Controller('videos')
 export class VideosController {
   constructor(
     private readonly videosService: VideosService,
+    private readonly storageService: StorageService,
     private readonly utilsService: UtilsService,
   ) {}
+
+  @Public()
+  @Get(':key/:filename')
+  @HttpCode(HttpStatus.PARTIAL_CONTENT)
+  async getChunk(
+    @Param('key', ValidateKeyPipe) key: string,
+    @Param('filename', ValidateChunkNamePipe) filename: string,
+    @Res() res: Response,
+  ) {
+    const s3Response = await this.storageService.get(`${key}/${filename}`);
+    if (!s3Response)
+      throw new NotFoundException(
+        `Video chunk not found (key: ${key}, chunk: ${filename})`,
+      );
+    Object.entries(s3Response.headers).forEach(([k, v]: [string, string]) => {
+      res.set(k, v);
+    });
+    res.set('Cache-Control', 'public, max-age=86400');
+    s3Response.pipe(res);
+  }
 
   @Post()
   @HttpCode(HttpStatus.ACCEPTED)
   @UseInterceptors(VideoInterceptor)
   async createChunks(
     @UploadedFile(ValidateExistencePipe) video: Express.Multer.File,
-    @AnimeId() id: string,
-    @AnimeEpisode() episode: number,
   ) {
-    await this.videosService.prepareEnvironment(id, episode, video);
-    this.videosService.processVideo(id, episode, video); // process in the background without blocking the request
+    const key = path.parse(video.filename).name;
+    this.videosService.create(key, video); // process in the background without blocking the request
     return this.utilsService.formatResponse(
-      `Video uploaded (id: ${id}, episode: ${episode}), it may take a while to process the video.`,
-    );
-  }
-
-  @Put()
-  @HttpCode(HttpStatus.ACCEPTED)
-  @UseInterceptors(VideoInterceptor)
-  async updateChunks(
-    @UploadedFile(ValidateExistencePipe) video: Express.Multer.File,
-    @AnimeId() id: string,
-    @AnimeEpisode() episode: number,
-  ) {
-    await this.videosService.prepareEnvironment(id, episode, video);
-    this.videosService.processVideo(id, episode, video); // process in the background without blocking the request
-    return this.utilsService.formatResponse(
-      `Video updated (id: ${id}, episode: ${episode}), it may take a while to process the video.`,
+      `Video uploaded (key: ${key}), it may take a while to process the video.`,
+      { path: `/videos/${key}/out.m3u8` },
     );
   }
 
   @Delete()
-  async deleteChunks(@AnimeId() id: string, @AnimeEpisode() episode: number) {
-    await this.videosService.deleteChunks(id, episode);
-    return this.utilsService.formatResponse(
-      `Video deleted (id: ${id}, episode: ${episode})`,
-    );
+  async deleteChunks(@Body('key', ValidateKeyPipe) key: string) {
+    await this.videosService.delete(key);
+    return this.utilsService.formatResponse(`Video deleted (key: ${key})`);
   }
 }

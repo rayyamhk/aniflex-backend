@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Put } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Put,
+} from '@nestjs/common';
 import {
   CreateEpisodeDTO,
   DeleteEpisodeDTO,
@@ -17,27 +26,18 @@ export class EpisodesController {
 
   @Public()
   @Get(':id')
-  async getEpisodes(
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  async getEpisodes(@Param('id', ParseUUIDPipe) id: string) {
     const episodes = await this.episodesService.getEpisodes(id, {
       ttl: 1000 * 60 * 5,
       namespace: 'EpisodesController:getEpisodes',
     });
-    return episodes.map((episode) => ({
-      ...episode,
-      video: `/public/videos/${episode.id}/${episode.episode}`,
-    }));
+    return this.utilsService.formatResponse(null, episodes);
   }
 
-  // Should be protected.
   @Get()
   async getAllEpisodes() {
     const episodes = await this.episodesService.getAllEpisodes();
-    return episodes.map((episode) => ({
-      ...episode,
-      video: `/public/videos/${episode.id}/${episode.episode}`,
-    }));
+    return this.utilsService.formatResponse(null, episodes);
   }
 
   @Post()

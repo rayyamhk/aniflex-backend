@@ -5,9 +5,7 @@ import { SeriesController } from './series.controller';
 import { SeriesService } from './series.service';
 
 @Module({
-  imports: [
-    DatabaseModule.register(ANIME_SERIES_DATABASE),
-  ],
+  imports: [DatabaseModule.register(ANIME_SERIES_DATABASE)],
   controllers: [SeriesController],
   providers: [SeriesService],
   exports: [SeriesService],

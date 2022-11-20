@@ -7,7 +7,7 @@ import {
   Matches,
   Min,
 } from 'class-validator';
-import { IMAGE_KEY_REGEX } from '../../../constants';
+import { IMAGE_KEY_SRC_REGEX } from '../../../constants';
 
 /**
 {
@@ -30,7 +30,7 @@ export class CreateSerieDTO {
   @IsString()
   description: string;
 
-  @Matches(IMAGE_KEY_REGEX)
+  @Matches(IMAGE_KEY_SRC_REGEX)
   thumbnail: string;
 
   @IsDateString()
@@ -55,7 +55,7 @@ export class UpdateSerieDTO {
   @Min(0)
   episodes: number;
 
-  @Matches(IMAGE_KEY_REGEX)
+  @Matches(IMAGE_KEY_SRC_REGEX)
   thumbnail: string;
 
   @IsDateString()

@@ -11,10 +11,6 @@ async function bootstrap() {
     await fs.promises.mkdir('temp');
   }
 
-  if (!fs.existsSync('static/videos')) {
-    await fs.promises.mkdir('static/videos', { recursive: true });
-  }
-
   const app = await NestFactory.create(AppModule);
   const reflector = app.get(Reflector);
   app.use(

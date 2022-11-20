@@ -6,10 +6,7 @@ import { EpisodesController } from './episodes.controller';
 import { EpisodesService } from './episodes.service';
 
 @Module({
-  imports: [
-    DatabaseModule.register(ANIME_EPISODES_DATABASE),
-    SeriesModule,
-  ],
+  imports: [DatabaseModule.register(ANIME_EPISODES_DATABASE), SeriesModule],
   controllers: [EpisodesController],
   providers: [EpisodesService],
   exports: [EpisodesService],

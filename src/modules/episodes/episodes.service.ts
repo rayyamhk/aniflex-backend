@@ -5,10 +5,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  CacheSettings,
-  DatabaseService,
-} from '../database/database.service';
+import { CacheSettings, DatabaseService } from '../database/database.service';
 import { SeriesService } from '../series/series.service';
 import { Episode } from './types/Episode';
 import { CreateEpisodeDTO, UpdateEpisodeDTO } from './dto/episode.dto';
@@ -79,7 +76,10 @@ export class EpisodesService {
         updateFieldsCount += 1;
       }
     });
-    if (updateFieldsCount === 0 && Object.keys(originalEpisode).length === Object.keys(newEpisode).length) {
+    if (
+      updateFieldsCount === 0 &&
+      Object.keys(originalEpisode).length === Object.keys(newEpisode).length
+    ) {
       throw new BadRequestException(
         'Episode update is unnecessary (nothing is changed)',
       );

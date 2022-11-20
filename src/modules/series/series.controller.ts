@@ -21,18 +21,16 @@ export class SeriesController {
   ) {}
 
   @Public()
-  @Get('id')
-  async getSerie(
-    @Param('id', ParseUUIDPipe) id: string,
-  ) {
+  @Get(':id')
+  async getSerie(@Param('id', ParseUUIDPipe) id: string) {
     const serie = await this.seriesService.get(id, {
       ttl: 1000 * 60 * 5,
       namespace: 'SeriesController:getSerie',
     });
-    return serie;
+    return this.utilsService.formatResponse(null, serie);
   }
 
-  // Should be protected.
+  @Public()
   @Get()
   async getSeries() {
     const series = await this.seriesService.getAll();

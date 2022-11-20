@@ -4,10 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  CacheSettings,
-  DatabaseService,
-} from '../database/database.service';
+import { CacheSettings, DatabaseService } from '../database/database.service';
 import { Serie } from './types/Serie';
 import { CreateSerieDTO, UpdateSerieDTO } from './dto/serie.dto';
 
@@ -52,7 +49,10 @@ export class SeriesService {
         updateFieldsCount += 1;
       }
     });
-    if (updateFieldsCount === 0 && Object.keys(originalSerie).length === Object.keys(newSerie).length) {
+    if (
+      updateFieldsCount === 0 &&
+      Object.keys(originalSerie).length === Object.keys(newSerie).length
+    ) {
       throw new BadRequestException(
         'Serie update is unnecessary (nothing is changed)',
       );

@@ -3,6 +3,7 @@ export type Episode = {
   episode: number;
   title: string;
   thumbnail: string;
+  video: string;
   publishedAt: string;
   uploadedAt: string;
   views: number;

@@ -2,61 +2,64 @@ import * as util from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { StorageService } from '../storage/storage.service';
 
 const execAsync = util.promisify(exec);
 
 @Injectable()
 export class VideosService {
-  getVideoPath(id: string, episode: number) {
-    return `/public/videos/${id}/${episode}/video.mpd`;
+  constructor(private readonly storageService: StorageService) {}
+
+  async create(key: string, video: Express.Multer.File) {
+    await this.processVideo(key, video);
+    await this.uploadVideoChunks(key);
   }
 
-  async prepareEnvironment(
-    id: string,
-    episode: number,
-    video: Express.Multer.File,
-  ) {
+  async delete(key: string) {
+    await this.storageService.deleteDir(key);
+  }
+
+  private async processVideo(key: string, video: Express.Multer.File) {
+    const outputPath = path.join('temp', key);
     try {
-      const outputPath = path.join('static', 'videos', id, episode.toString());
-      if (fs.existsSync(outputPath)) {
-        await fs.promises.rm(outputPath, { recursive: true });
-      }
       await fs.promises.mkdir(outputPath, { recursive: true });
-    } catch (err) {
-      fs.promises.unlink(video.path); // clean up the video in temp directory.
-      throw err;
-    }
-  }
-
-  async processVideo(id: string, episode: number, video: Express.Multer.File) {
-    try {
-      const outputPath = path.join('static', 'videos', id, episode.toString());
       await execAsync(`
         ffmpeg \
           -i ${video.path} \
-          -c:v libx264 -preset medium -tune animation -crf 26 \
-          -init_seg_name \\$RepresentationID\\$_000.\\$ext\\$ -media_seg_name \\$RepresentationID\\$_\\$Number%03d\\$.\\$ext\\$ \
-          -use_template 1 -use_timeline 1 \
-          -seg_duration 15 -adaptation_sets "id=0,streams=v id=1,streams=a" \
-          -f dash ${outputPath}/video.mpd
+          -c:v libx264 -preset veryfast -tune animation -crf 26 \
+          -f hls \
+          -hls_time 30 \
+          -hls_list_size 0 \
+          -hls_segment_filename 'temp/${key}/%d.ts' \
+          temp/${key}/out.m3u8
       `);
     } catch (err) {
-      // Since this method is not called with "await", don't throw the error coz
-      // it won't be caught by the error handling layer provided by nestjs.
       console.error(err);
+      await fs.promises.rm(outputPath, { recursive: true, force: true });
     } finally {
-      fs.promises.unlink(video.path); // clean up the video in temp
+      await fs.promises.rm(video.path, { force: true });
     }
   }
 
-  async deleteChunks(id: string, episode: number) {
-    const outputPath = path.join('static', 'videos', id, episode.toString());
-    if (!fs.existsSync(path.join(outputPath, 'video.mpd'))) {
-      throw new NotFoundException(
-        `Video not found (id: ${id}, episode: ${episode})`,
-      );
+  private async uploadVideoChunks(key: string) {
+    const chunksPath = path.join('temp', key);
+    try {
+      const dir = await fs.promises.readdir(chunksPath);
+      for (const filename of dir) {
+        const buffer = await fs.promises.readFile(
+          path.join(chunksPath, filename),
+        );
+        const mimetype =
+          path.parse(filename).ext === '.m3u8'
+            ? 'application/x-mpegurl'
+            : 'video/mp2t';
+        await this.storageService.put(`${key}/${filename}`, buffer, mimetype);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      await fs.promises.rm(chunksPath, { recursive: true, force: true });
     }
-    await fs.promises.rm(outputPath, { recursive: true });
   }
 }
