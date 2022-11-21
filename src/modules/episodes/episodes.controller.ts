@@ -5,12 +5,13 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Put,
 } from '@nestjs/common';
 import {
   CreateEpisodeDTO,
-  DeleteEpisodeDTO,
+  EpisodePrimaryKey,
   UpdateEpisodeDTO,
 } from './dto/episode.dto';
 import { UtilsService } from '../utils/utils.service';
@@ -58,8 +59,16 @@ export class EpisodesController {
     );
   }
 
+  @Public()
+  @Patch()
+  incrementViews(@Body() primaryKey: EpisodePrimaryKey) {
+    const { id, episode } = primaryKey;
+    this.episodesService.incrementViews(id, episode);
+    return this.utilsService.formatResponse(`Episode views incremented (id: ${id}, episode: ${episode})`);
+  }
+
   @Delete()
-  async deleteEpisode(@Body() primaryKey: DeleteEpisodeDTO) {
+  async deleteEpisode(@Body() primaryKey: EpisodePrimaryKey) {
     const { id, episode } = primaryKey;
     const deletedEpisode = await this.episodesService.delete(id, episode);
     return this.utilsService.formatResponse(

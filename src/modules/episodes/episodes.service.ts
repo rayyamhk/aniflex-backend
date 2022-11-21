@@ -5,6 +5,7 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { CacheSettings, DatabaseService } from '../database/database.service';
 import { SeriesService } from '../series/series.service';
 import { Episode } from './types/Episode';
@@ -12,14 +13,31 @@ import { CreateEpisodeDTO, UpdateEpisodeDTO } from './dto/episode.dto';
 
 @Injectable()
 export class EpisodesService {
+  private viewsCache = new Map<string, number>();
+
   constructor(
     private readonly databaseService: DatabaseService<Episode>,
     private readonly seriesService: SeriesService,
   ) {}
 
-  /**
-   * Get all episodes by serie id
-   */
+  // Every 10 minutes
+  @Cron('0 */10 * * * *')
+  private async updateEpisodeViews() {
+    for (let [k, v] of this.viewsCache) {
+      console.log('updating views: ', k, v);
+      const [id, episode] = k.split('|');
+      const item = await this.databaseService.getItemByPrimaryKey({
+        partitionKey: ['id', id],
+        sortKey: ['episode', episode],
+      });
+      await this.databaseService.putItem({
+        ...item,
+        views: item.views + v,
+      });
+    }
+    this.viewsCache.clear();
+  }
+
   async getEpisodes(id: string, cacheSettings?: CacheSettings) {
     return await this.databaseService.getItemsByPartitionKey(
       { partitionKey: ['id', id] },
@@ -86,6 +104,12 @@ export class EpisodesService {
     }
     await this.databaseService.putItem(newEpisode);
     return newEpisode;
+  }
+
+  incrementViews(id: string, episode: number) {
+    const key = `${id}|${episode}`;
+    const prevViews = this.viewsCache.get(key) || 0;
+    this.viewsCache.set(key, prevViews + 1);
   }
 
   async delete(id: string, episode: number) {

@@ -68,7 +68,7 @@ export class UpdateEpisodeDTO {
   views: number;
 }
 
-export class DeleteEpisodeDTO {
+export class EpisodePrimaryKey {
   @IsUUID(4)
   id: string;
 

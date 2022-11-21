@@ -33,7 +33,6 @@ export class VideosController {
 
   @Public()
   @Get(':key/:filename')
-  @HttpCode(HttpStatus.PARTIAL_CONTENT)
   async getChunk(
     @Param('key', ValidateKeyPipe) key: string,
     @Param('filename', ValidateChunkNamePipe) filename: string,

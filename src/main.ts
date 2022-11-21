@@ -28,7 +28,7 @@ async function bootstrap() {
   app.useGlobalGuards(new AuthGuard(reflector));
   app.enableCors({
     origin: '*',
-    methods: 'GET,POST,PUT,DELETE',
+    methods: 'GET,POST,PUT,PATCH,DELETE',
   });
   await app.listen(process.env.PORT || 8080);
 }
