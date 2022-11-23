@@ -24,11 +24,10 @@ export class EpisodesService {
   @Cron('0 */10 * * * *')
   private async updateEpisodeViews() {
     for (let [k, v] of this.viewsCache) {
-      console.log('updating views: ', k, v);
       const [id, episode] = k.split('|');
       const item = await this.databaseService.getItemByPrimaryKey({
         partitionKey: ['id', id],
-        sortKey: ['episode', episode],
+        sortKey: ['episode', Number(episode)],
       });
       await this.databaseService.putItem({
         ...item,
