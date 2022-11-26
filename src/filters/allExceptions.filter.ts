@@ -7,6 +7,27 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
+export function handleException(exception: unknown, req: Request, res: Response) {
+  const isHttpException = exception instanceof HttpException;
+
+  const statusCode = isHttpException
+    ? exception.getStatus()
+    : HttpStatus.INTERNAL_SERVER_ERROR;
+  const response = isHttpException
+    ? exception.getResponse()
+    : ('Internal Server Error' as any);
+
+  res.status(statusCode).json({
+    statusCode,
+    message:
+      typeof response === 'object' && response.message
+        ? response.message
+        : response,
+    time: new Date().toISOString(),
+    path: req.url,
+  });
+}
+
 // https://docs.nestjs.com/exception-filters
 @Catch()
 export class AllExceptionFilter implements ExceptionFilter {
@@ -14,24 +35,6 @@ export class AllExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const req = ctx.getRequest<Request>();
     const res = ctx.getResponse<Response>();
-
-    const isHttpException = exception instanceof HttpException;
-
-    const statusCode = isHttpException
-      ? exception.getStatus()
-      : HttpStatus.INTERNAL_SERVER_ERROR;
-    const response = isHttpException
-      ? exception.getResponse()
-      : ('Internal Server Error' as any);
-
-    res.status(statusCode).json({
-      statusCode,
-      message:
-        typeof response === 'object' && response.message
-          ? response.message
-          : response,
-      time: new Date().toISOString(),
-      path: req.url,
-    });
+    handleException(exception, req, res);
   }
 }
