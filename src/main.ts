@@ -45,7 +45,7 @@ async function bootstrap() {
     timeout: AUTH_SERVER_TIMEOUT ? Number(AUTH_SERVER_TIMEOUT) : 3000,
     headers: { 'x-api-key': AUTH_SERVER_API_KEY },
     pathRewrite: (path) => path.replace('/auth', ''),
-    onError: (err, req, res) => handleException(new InternalServerErrorException(err), req, res),
+    onError: (err, req, res) => handleException(new InternalServerErrorException('Internal Proxy Error.'), req, res),
   }));
   await app.listen(PORT || 8080);
 }
