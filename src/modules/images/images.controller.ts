@@ -1,4 +1,4 @@
-import * as crypto from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { Response } from 'express';
 import {
   Body,
@@ -12,9 +12,9 @@ import {
   UploadedFile,
   UseInterceptors,
 } from '@nestjs/common';
-import { ValidateKeyPipe } from '../../pipes/validateKey.pipe';
 import { ImageIntersecptor } from './interceptors/image.interceptor';
-import { ValidateExistencePipe } from 'src/pipes/validateExistence.pipe';
+import { ValidateKeyPipe } from '../../pipes/validateKey.pipe';
+import { ValidateExistencePipe } from '../../pipes/validateExistence.pipe';
 import { UtilsService } from '../utils/utils.service';
 import { StorageService } from '../storage/storage.service';
 import { Public } from '../../decorators/public.decorator';
@@ -33,9 +33,8 @@ export class ImagesController {
     @Res() res: Response,
   ) {
     const s3Response = await this.storageService.get(key);
-    if (!s3Response) {
+    if (!s3Response)
       throw new NotFoundException(`Image not found (key: ${key})`);
-    }
     Object.entries(s3Response.headers).forEach(([k, v]: [string, string]) => {
       res.set(k, v);
     });
@@ -62,6 +61,6 @@ export class ImagesController {
   }
 
   private getHash() {
-    return crypto.randomBytes(8).toString('hex');
+    return randomBytes(8).toString('hex');
   }
 }

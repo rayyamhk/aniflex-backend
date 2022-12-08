@@ -1,25 +1,29 @@
+import { Type } from 'class-transformer';
 import {
   IsDateString,
+  IsIn,
   IsInt,
   IsOptional,
+  IsPositive,
   IsString,
   IsUUID,
   Matches,
   Min,
 } from 'class-validator';
 import { IMAGE_KEY_SRC_REGEX } from '../../../constants';
+import { OrderBy, orderBy, SortBy, sortBy } from '../types/Serie';
 
 /**
 {
-  id: string;
+  _id: string;
   title: string;
   description: string;
-  episodes: number;
+  episodes: string[];
   thumbnail: string;
   publishedAt: string;
   uploadedAt: string;
   views: number;
-  tags?: string[];
+  tags: string[];
 };
  */
 
@@ -43,7 +47,7 @@ export class CreateSerieDTO {
 
 export class UpdateSerieDTO {
   @IsUUID(4)
-  id: string;
+  _id: string;
 
   @IsString()
   title: string;
@@ -51,9 +55,8 @@ export class UpdateSerieDTO {
   @IsString()
   description: string;
 
-  @IsInt()
-  @Min(0)
-  episodes: number;
+  @IsUUID(4, { each: true })
+  episodes: string[];
 
   @Matches(IMAGE_KEY_SRC_REGEX)
   thumbnail: string;
@@ -65,10 +68,24 @@ export class UpdateSerieDTO {
   uploadedAt: string;
 
   @IsString({ each: true })
-  @IsOptional()
-  tags?: string[];
+  tags: string[];
 
   @IsInt()
   @Min(0)
   views: number;
+}
+
+export class QuerySeriesDTO {
+  @IsOptional()
+  @Type(() => Number)
+  @IsPositive()
+  limit?: number = 8;
+
+  @IsOptional()
+  @IsIn(orderBy)
+  orderBy?: OrderBy = 'publishedAt';
+
+  @IsOptional()
+  @IsIn(sortBy)
+  sortBy?: SortBy = 'desc';
 }

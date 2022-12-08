@@ -1,157 +1,95 @@
 import { CACHE_MANAGER, Inject, Injectable } from '@nestjs/common';
-import {
-  DeleteItemCommand,
-  DynamoDBClient,
-  GetItemCommand,
-  PutItemCommand,
-  QueryCommand,
-  ScanCommand,
-  ScanCommandOutput,
-} from '@aws-sdk/client-dynamodb';
-import { marshall, unmarshall } from '@aws-sdk/util-dynamodb';
+import { Collection, Document, FindOptions, MongoClient } from 'mongodb';
 import { Cache } from 'cache-manager';
-
-type PrimaryKey = {
-  partitionKey: [string, any];
-  sortKey?: [string, any];
-};
+import { COLLECTION_NAME } from '../../constants';
 
 export type CacheSettings = {
-  namespace: string;
+  key: string;
   ttl?: number;
 };
 
+export type FindOptionsType = FindOptions<Document>;
+
 @Injectable()
 export class DatabaseService<T> {
-  private readonly ddbClient: DynamoDBClient;
-  private readonly REGION = process.env.REGION || 'us-east-2';
+  private readonly collection: Collection<Document>;
+  private readonly MONGO_USERNAME = process.env.MONGO_USERNAME;
+  private readonly MONGO_PASSWORD = process.env.MONGO_PASSWORD;
+  private readonly MONGO_HOST = process.env.MONGO_HOST || 'localhost:27017';
+  private readonly MONGO_DATABASE = process.env.MONGO_DATABASE || 'test';
 
   constructor(
-    @Inject('TABLE_NAME') private readonly tableName: string,
+    @Inject(COLLECTION_NAME) private readonly collectionName: string,
     @Inject(CACHE_MANAGER) private readonly cacheService: Cache,
   ) {
-    this.ddbClient = new DynamoDBClient({ region: this.REGION });
+    const credential =
+      this.MONGO_USERNAME && this.MONGO_PASSWORD
+        ? `${this.MONGO_USERNAME}:${this.MONGO_PASSWORD}@`
+        : '';
+    const uri = `mongodb://${credential}${this.MONGO_HOST}?retryWrites=true&w=majority`;
+    this.collection = new MongoClient(uri)
+      .db(this.MONGO_DATABASE)
+      .collection(this.collectionName);
   }
 
-  async getItemByPrimaryKey(
-    primaryKey: PrimaryKey,
-    cacheSettings?: CacheSettings,
-  ) {
-    let cacheKey: string;
-
+  async findOneById(id: string, cacheSettings?: CacheSettings) {
     if (cacheSettings) {
-      cacheKey = this.getCacheKey(cacheSettings.namespace, primaryKey);
-      const cached = await this.cacheService.get<T>(cacheKey);
+      const cached = await this.cacheService.get<T>(cacheSettings.key);
       if (cached) return cached;
     }
-
-    const res = await this.ddbClient.send(
-      new GetItemCommand({
-        TableName: this.tableName,
-        Key: marshall(this.formatPrimaryKey(primaryKey)),
-      }),
-    );
-    if (!res.Item) return null;
-    const data = unmarshall(res.Item) as T;
-    if (cacheSettings) {
-      await this.cacheService.set(cacheKey, data, cacheSettings.ttl);
-    }
-    return data;
+    const item = await this.collection.findOne<T>({ _id: id });
+    if (!item) return null;
+    if (cacheSettings)
+      await this.cacheService.set(cacheSettings.key, item, cacheSettings.ttl);
+    return item;
   }
 
-  async getItemsByPartitionKey(
-    primaryKey: PrimaryKey,
-    cacheSettings?: CacheSettings,
-  ) {
-    let cacheKey: string;
-
+  async findByIds(ids: string[], cacheSettings?: CacheSettings) {
     if (cacheSettings) {
-      cacheKey = this.getCacheKey(cacheSettings.namespace, primaryKey);
-      const cached = await this.cacheService.get<T[]>(cacheKey);
+      const cached = await this.cacheService.get<T[]>(cacheSettings.key);
       if (cached) return cached;
     }
-
-    const res = await this.ddbClient.send(
-      new QueryCommand({
-        TableName: this.tableName,
-        KeyConditionExpression: `#k = :v`,
-        ExpressionAttributeValues: marshall({
-          ':v': primaryKey.partitionKey[1],
-        }),
-        ExpressionAttributeNames: { '#k': primaryKey.partitionKey[0] },
-      }),
-    );
-    const data = res.Items.map((item) => unmarshall(item)) as T[];
-    if (cacheSettings && data.length > 0) {
-      this.cacheService.set(cacheKey, data, cacheSettings.ttl);
-    }
-    return data;
+    const items = await this.collection
+      .find<T>({
+        _id: { $in: ids },
+      })
+      .toArray();
+    if (!items || items.length === 0) return [];
+    if (cacheSettings)
+      await this.cacheService.set(cacheSettings.key, items, cacheSettings.ttl);
+    return items;
   }
 
-  async getAllItems(limit?: number, cacheSettings?: CacheSettings) {
-    let cacheKey: string;
-
+  async find(options: FindOptionsType, cacheSettings?: CacheSettings) {
     if (cacheSettings) {
-      cacheKey = this.getCacheKey(cacheSettings.namespace);
-      const cached = await this.cacheService.get<T[]>(cacheKey);
+      const cached = await this.cacheService.get<T[]>(cacheSettings.key);
       if (cached) return cached;
     }
-
-    // dynamoDB scan operation at most return 1 MB data.
-    const data: T[] = [];
-    let res: ScanCommandOutput;
-    do {
-      res = await this.ddbClient.send(
-        new ScanCommand({
-          TableName: this.tableName,
-          Limit: limit,
-          ExclusiveStartKey: res?.LastEvaluatedKey,
-        }),
-      );
-      res.Items.forEach((item) => data.push(unmarshall(item) as T));
-    } while (res.LastEvaluatedKey);
-
-    if (cacheSettings && data.length > 0) {
-      this.cacheService.set(cacheKey, data, cacheSettings.ttl);
-    }
-    return data;
+    const items = await this.collection.find<T>({}, options).toArray();
+    if (!items || items.length === 0) return [];
+    if (cacheSettings)
+      await this.cacheService.set(cacheSettings.key, items, cacheSettings.ttl);
+    return items;
   }
 
-  async putItem(item: T) {
-    await this.ddbClient.send(
-      new PutItemCommand({
-        TableName: this.tableName,
-        Item: marshall(item),
-      }),
+  async insertOne(item: T) {
+    return await this.collection.insertOne(item);
+  }
+
+  async updateOneById(id: string, fields: Partial<T>) {
+    return await this.collection.updateOne(
+      { _id: id },
+      {
+        $set: fields,
+      },
     );
   }
 
-  async deleteItemByPrimaryKey(primaryKey: PrimaryKey) {
-    await this.ddbClient.send(
-      new DeleteItemCommand({
-        TableName: this.tableName,
-        Key: marshall(this.formatPrimaryKey(primaryKey)),
-      }),
-    );
+  async replaceOneById(id: string, item: T) {
+    return await this.collection.replaceOne({ _id: id }, item);
   }
 
-  private formatPrimaryKey(primaryKey: PrimaryKey): Record<string, any> {
-    return Object.values(primaryKey).reduce(
-      (prev, curr) => ({
-        ...prev,
-        [curr[0]]: curr[1],
-      }),
-      {},
-    );
-  }
-
-  private getCacheKey(namespace: string, primaryKey?: PrimaryKey) {
-    let partitionKeyValue = '',
-      sortKeyValue = '';
-    if (primaryKey) {
-      partitionKeyValue = primaryKey.partitionKey[1];
-      sortKeyValue = primaryKey?.sortKey?.[1] || '';
-    }
-    return `${this.tableName}#${namespace}#pk=${partitionKeyValue}#sk=${sortKeyValue}`;
+  async deleteOneById(id: string) {
+    return await this.collection.deleteOne({ _id: id });
   }
 }

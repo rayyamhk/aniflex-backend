@@ -1,4 +1,4 @@
-import * as crypto from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import {
   BadRequestException,
   Injectable,
@@ -6,71 +6,75 @@ import {
 } from '@nestjs/common';
 import { CacheSettings, DatabaseService } from '../database/database.service';
 import { Serie } from './types/Serie';
-import { CreateSerieDTO, UpdateSerieDTO } from './dto/serie.dto';
+import {
+  CreateSerieDTO,
+  QuerySeriesDTO,
+  UpdateSerieDTO,
+} from './dto/serie.dto';
 
 @Injectable()
 export class SeriesService {
   constructor(private readonly databaseService: DatabaseService<Serie>) {}
 
-  async get(id: string, cacheSettings?: CacheSettings) {
-    return await this.databaseService.getItemByPrimaryKey(
-      { partitionKey: ['id', id] },
-      cacheSettings,
+  async getSeries(query: QuerySeriesDTO) {
+    const { limit, orderBy, sortBy } = query;
+    const series = await this.databaseService.find(
+      {
+        sort: { [orderBy]: sortBy === 'asc' ? 1 : -1 },
+        limit,
+      },
+      {
+        key: `/series?limit=${limit}&orderBy=${orderBy}&sortBy=${sortBy}`,
+        ttl: 1000 * 60 * 5,
+      },
     );
+    return series;
   }
 
-  async getAll() {
-    return await this.databaseService.getAllItems();
+  async getSerie(id: string) {
+    const serie = await this.databaseService.findOneById(id, {
+      key: `/series/${id}`,
+      ttl: 1000 * 60 * 5,
+    });
+    return serie;
+  }
+
+  async get(id: string, cacheSettings?: CacheSettings) {
+    return await this.databaseService.findOneById(id, cacheSettings);
   }
 
   async create(body: CreateSerieDTO) {
     const createdSerie: Serie = {
-      id: crypto.randomUUID(),
-      episodes: 0,
+      ...body,
+      _id: randomUUID(),
+      episodes: [],
       uploadedAt: new Date().toISOString(),
       views: 0,
-      ...body,
+      tags: body.tags || [],
     };
-    await this.databaseService.putItem(createdSerie);
+    await this.databaseService.insertOne(createdSerie);
     return createdSerie;
   }
 
   async update(newSerie: UpdateSerieDTO) {
-    const id = newSerie.id;
-    const originalSerie = await this.databaseService.getItemByPrimaryKey({
-      partitionKey: ['id', id],
-    });
-    if (!originalSerie) {
-      throw new NotFoundException(`Serie not found (id: ${id})`);
-    }
-    let updateFieldsCount = 0;
-    Object.keys(newSerie).forEach((key) => {
-      if (newSerie[key] !== originalSerie[key]) {
-        updateFieldsCount += 1;
+    const result = await this.databaseService.replaceOneById(
+      newSerie._id,
+      newSerie,
+    );
+    if (result.modifiedCount === 0) {
+      if (result.matchedCount === 0) {
+        throw new NotFoundException(`Serie not found (id: ${newSerie._id})`);
+      } else {
+        throw new BadRequestException(
+          `Serie not changed (id: ${newSerie._id})`,
+        );
       }
-    });
-    if (
-      updateFieldsCount === 0 &&
-      Object.keys(originalSerie).length === Object.keys(newSerie).length
-    ) {
-      throw new BadRequestException(
-        'Serie update is unnecessary (nothing is changed)',
-      );
     }
-    await this.databaseService.putItem(newSerie);
-    return newSerie;
   }
 
   async delete(id: string) {
-    const existedSerie = await this.databaseService.getItemByPrimaryKey({
-      partitionKey: ['id', id],
-    });
-    if (!existedSerie) {
+    const result = await this.databaseService.deleteOneById(id);
+    if (result.deletedCount === 0)
       throw new NotFoundException(`Serie not found (id: ${id})`);
-    }
-    await this.databaseService.deleteItemByPrimaryKey({
-      partitionKey: ['id', id],
-    });
-    return existedSerie;
   }
 }

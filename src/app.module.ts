@@ -6,7 +6,6 @@ import { SeriesModule } from './modules/series/series.module';
 import { EpisodesModule } from './modules/episodes/episodes.module';
 import { VideosModule } from './modules/videos/videos.module';
 import { UtilsModule } from './modules/utils/utils.module';
-import { AppController } from './app.controller';
 import { ImagesModule } from './modules/images/images.module';
 
 @Module({
@@ -23,6 +22,5 @@ import { ImagesModule } from './modules/images/images.module';
     VideosModule,
     ImagesModule,
   ],
-  controllers: [AppController],
 })
 export class AppModule {}

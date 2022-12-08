@@ -1,5 +1,6 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { StorageService } from './storage.service';
+import { BUCKET_NAME } from '../../constants';
 
 @Module({})
 export class StorageModule {
@@ -9,7 +10,7 @@ export class StorageModule {
       providers: [
         StorageService,
         {
-          provide: 'BUCKET_NAME',
+          provide: BUCKET_NAME,
           useValue: bucketName,
         },
       ],

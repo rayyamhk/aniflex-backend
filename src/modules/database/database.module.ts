@@ -1,17 +1,18 @@
 import { CacheModule, DynamicModule, Module } from '@nestjs/common';
 import { DatabaseService } from './database.service';
+import { COLLECTION_NAME } from '../../constants';
 
 @Module({})
 export class DatabaseModule {
-  static register(tableName: string): DynamicModule {
+  static register(collectionName: string): DynamicModule {
     return {
       module: DatabaseModule,
       imports: [CacheModule.register()],
       providers: [
         DatabaseService,
         {
-          provide: 'TABLE_NAME',
-          useValue: tableName,
+          provide: COLLECTION_NAME,
+          useValue: collectionName,
         },
       ],
       exports: [DatabaseService],

@@ -1,15 +1,18 @@
+import { randomUUID } from 'crypto';
 import {
   BadRequestException,
-  ConflictException,
   Injectable,
-  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { CacheSettings, DatabaseService } from '../database/database.service';
+import { DatabaseService } from '../database/database.service';
 import { SeriesService } from '../series/series.service';
 import { Episode } from './types/Episode';
-import { CreateEpisodeDTO, UpdateEpisodeDTO } from './dto/episode.dto';
+import {
+  CreateEpisodeDTO,
+  QueryEpisodesDTO,
+  UpdateEpisodeDTO,
+} from './dto/episode.dto';
 
 @Injectable()
 export class EpisodesService {
@@ -23,120 +26,78 @@ export class EpisodesService {
   // Every 10 minutes
   @Cron('0 */10 * * * *')
   private async updateEpisodeViews() {
-    for (let [k, v] of this.viewsCache) {
-      const [id, episode] = k.split('|');
-      const item = await this.databaseService.getItemByPrimaryKey({
-        partitionKey: ['id', id],
-        sortKey: ['episode', Number(episode)],
-      });
-      await this.databaseService.putItem({
-        ...item,
-        views: item.views + v,
+    for (const [id, count] of this.viewsCache) {
+      const episode = await this.databaseService.findOneById(id);
+      await this.databaseService.replaceOneById(id, {
+        ...episode,
+        views: episode.views + count,
       });
     }
     this.viewsCache.clear();
   }
 
-  async getEpisodes(id: string, cacheSettings?: CacheSettings) {
-    return await this.databaseService.getItemsByPartitionKey(
-      { partitionKey: ['id', id] },
-      cacheSettings,
-    );
-  }
+  async getEpisodes(query: QueryEpisodesDTO) {
+    const { serie: serieId, limit, orderBy, sortBy } = query;
 
-  async getAllEpisodes() {
-    return await this.databaseService.getAllItems();
+    if (serieId) {
+      const serie = await this.seriesService.get(serieId);
+      if (!serie || serie.episodes.length === 0) return [];
+      const episodes = this.databaseService.findByIds(serie.episodes, {
+        key: `/episodes?serie=${serieId}`,
+        ttl: 1000 * 60 * 5,
+      });
+      return episodes;
+    }
+    const episodes = await this.databaseService.find(
+      {
+        sort: { [orderBy]: sortBy === 'asc' ? 1 : -1 },
+        limit,
+      },
+      {
+        key: `/episodes?limit=${limit}&orderBy=${orderBy}&sortBy=${sortBy}`,
+        ttl: 1000 * 60 * 5,
+      },
+    );
+    return episodes;
   }
 
   async create(body: CreateEpisodeDTO) {
-    const { id, episode } = body;
-    const existedSerie = await this.seriesService.get(id);
-    if (!existedSerie) {
-      throw new NotFoundException(`Serie not found (id: ${id})`);
-    }
-    const existedEpisode = await this.databaseService.getItemByPrimaryKey({
-      partitionKey: ['id', id],
-      sortKey: ['episode', episode],
-    });
-    if (existedEpisode) {
-      throw new ConflictException(
-        `Episode existed (id: ${id}, episode: ${episode})`,
-      );
-    }
     const createdEpisode: Episode = {
+      _id: randomUUID(),
       uploadedAt: new Date().toISOString(),
       views: 0,
       ...body,
     };
-    await this.databaseService.putItem(createdEpisode);
-    await this.seriesService.update({
-      ...existedSerie,
-      episodes: existedSerie.episodes + 1,
-    });
+    await this.databaseService.insertOne(createdEpisode);
     return createdEpisode;
   }
 
   async update(newEpisode: UpdateEpisodeDTO) {
-    const { id, episode } = newEpisode;
-    const originalEpisode = await this.databaseService.getItemByPrimaryKey({
-      partitionKey: ['id', id],
-      sortKey: ['episode', episode],
-    });
-    if (!originalEpisode) {
-      throw new NotFoundException(
-        `Episode not found (id: ${id}, episode: ${episode})`,
-      );
-    }
-    let updateFieldsCount = 0;
-    Object.keys(newEpisode).forEach((key) => {
-      if (newEpisode[key] !== originalEpisode[key]) {
-        updateFieldsCount += 1;
+    const result = await this.databaseService.replaceOneById(
+      newEpisode._id,
+      newEpisode,
+    );
+    if (result.modifiedCount === 0) {
+      if (result.matchedCount === 0) {
+        throw new NotFoundException(
+          `Episode not found (id: ${newEpisode._id})`,
+        );
+      } else {
+        throw new BadRequestException(
+          `Episode not changed (id: ${newEpisode._id})`,
+        );
       }
-    });
-    if (
-      updateFieldsCount === 0 &&
-      Object.keys(originalEpisode).length === Object.keys(newEpisode).length
-    ) {
-      throw new BadRequestException(
-        'Episode update is unnecessary (nothing is changed)',
-      );
     }
-    await this.databaseService.putItem(newEpisode);
-    return newEpisode;
   }
 
-  incrementViews(id: string, episode: number) {
-    const key = `${id}|${episode}`;
-    const prevViews = this.viewsCache.get(key) || 0;
-    this.viewsCache.set(key, prevViews + 1);
+  incrementViews(id: string) {
+    const prevViews = this.viewsCache.get(id) || 0;
+    this.viewsCache.set(id, prevViews + 1);
   }
 
-  async delete(id: string, episode: number) {
-    const existedEpisode = await this.databaseService.getItemByPrimaryKey({
-      partitionKey: ['id', id],
-      sortKey: ['episode', episode],
-    });
-    if (!existedEpisode) {
-      throw new NotFoundException(
-        `Episode not found (id: ${id}, episode: ${episode})`,
-      );
-    }
-    const existedSerie = await this.seriesService.get(id);
-
-    // episode exists imples serie exists,
-    // therefore it must not be null.
-    // Defensive check.
-    if (!existedSerie) {
-      throw new InternalServerErrorException(`Internal server error`);
-    }
-    await this.databaseService.deleteItemByPrimaryKey({
-      partitionKey: ['id', id],
-      sortKey: ['episode', episode],
-    });
-    await this.seriesService.update({
-      ...existedSerie,
-      episodes: existedSerie.episodes - 1,
-    });
-    return existedEpisode;
+  async delete(id: string) {
+    const result = await this.databaseService.deleteOneById(id);
+    if (result.deletedCount === 0)
+      throw new NotFoundException(`Episode not found (id: ${id})`);
   }
 }

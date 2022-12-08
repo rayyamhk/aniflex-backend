@@ -16,9 +16,7 @@ export class AuthGuard implements CanActivate {
       'isPublic',
       context.getHandler(),
     );
-    if (isPublic) {
-      return true;
-    }
+    if (isPublic) return true;
     const req = context.switchToHttp().getRequest<Request>();
     const apiKey = req.get('x-api-key');
     if (!process.env.API_KEY || process.env.API_KEY !== apiKey) {

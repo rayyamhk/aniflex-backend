@@ -9,13 +9,14 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
+import { BUCKET_NAME } from '../../constants';
 
 @Injectable()
 export class StorageService {
   private readonly s3Client: S3Client;
   private readonly REGION = process.env.REGION || 'us-east-2';
 
-  constructor(@Inject('BUCKET_NAME') private readonly bucketName: string) {
+  constructor(@Inject(BUCKET_NAME) private readonly bucketName: string) {
     this.s3Client = new S3Client({ region: this.REGION });
   }
 

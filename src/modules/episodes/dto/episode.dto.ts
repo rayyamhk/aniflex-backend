@@ -1,16 +1,20 @@
+import { Type } from 'class-transformer';
 import {
   IsDateString,
+  IsIn,
   IsInt,
+  IsOptional,
+  IsPositive,
   IsString,
   IsUUID,
   Matches,
   Min,
 } from 'class-validator';
+import { orderBy, OrderBy, sortBy, SortBy } from '../types/Episode';
 import { IMAGE_KEY_SRC_REGEX, VIDEO_KEY_SRC_REGEX } from '../../../constants';
 
 /**
- * id: string,
- * episode: number,
+ * _id: string,
  * title: string,
  * thumbnail: string,
  * video: string,
@@ -20,13 +24,6 @@ import { IMAGE_KEY_SRC_REGEX, VIDEO_KEY_SRC_REGEX } from '../../../constants';
  */
 
 export class CreateEpisodeDTO {
-  @IsUUID(4)
-  id: string;
-
-  @IsInt()
-  @Min(1)
-  episode: number;
-
   @IsString()
   title: string;
 
@@ -42,11 +39,7 @@ export class CreateEpisodeDTO {
 
 export class UpdateEpisodeDTO {
   @IsUUID(4)
-  id: string;
-
-  @IsInt()
-  @Min(1)
-  episode: number;
+  _id: string;
 
   @IsString()
   title: string;
@@ -68,11 +61,21 @@ export class UpdateEpisodeDTO {
   views: number;
 }
 
-export class EpisodePrimaryKey {
+export class QueryEpisodesDTO {
+  @IsOptional()
   @IsUUID(4)
-  id: string;
+  serie?: string;
 
-  @IsInt()
-  @Min(1)
-  episode: number;
+  @IsOptional()
+  @IsPositive()
+  @Type(() => Number)
+  limit?: number = 8;
+
+  @IsOptional()
+  @IsIn(orderBy)
+  orderBy?: OrderBy = 'uploadedAt';
+
+  @IsOptional()
+  @IsIn(sortBy)
+  sortBy?: SortBy = 'desc';
 }
