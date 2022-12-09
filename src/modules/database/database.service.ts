@@ -44,15 +44,13 @@ export class DatabaseService<T> {
     return item;
   }
 
-  async findByIds(ids: string[], cacheSettings?: CacheSettings) {
+  async findByIds(ids: string[], options: FindOptionsType, cacheSettings?: CacheSettings) {
     if (cacheSettings) {
       const cached = await this.cacheService.get<T[]>(cacheSettings.key);
       if (cached) return cached;
     }
     const items = await this.collection
-      .find<T>({
-        _id: { $in: ids },
-      })
+      .find<T>({ _id: { $in: ids } }, options)
       .toArray();
     if (!items || items.length === 0) return [];
     if (cacheSettings)

@@ -38,26 +38,23 @@ export class EpisodesService {
 
   async getEpisodes(query: QueryEpisodesDTO) {
     const { serie: serieId, limit, orderBy, sortBy } = query;
-
+    const options = {
+      sort: { [orderBy]: sortBy === 'asc' ? 1 : -1 },
+      limit,
+    } as const;
     if (serieId) {
       const serie = await this.seriesService.get(serieId);
       if (!serie || serie.episodes.length === 0) return [];
-      const episodes = this.databaseService.findByIds(serie.episodes, {
-        key: `/episodes?serie=${serieId}`,
+      const episodes = this.databaseService.findByIds(serie.episodes, options, {
+        key: `/episodes?serie=${serieId}&orderBy=${orderBy}&sortBy=${sortBy}&limit=${limit}`,
         ttl: 1000 * 60 * 5,
       });
       return episodes;
     }
-    const episodes = await this.databaseService.find(
-      {
-        sort: { [orderBy]: sortBy === 'asc' ? 1 : -1 },
-        limit,
-      },
-      {
-        key: `/episodes?limit=${limit}&orderBy=${orderBy}&sortBy=${sortBy}`,
-        ttl: 1000 * 60 * 5,
-      },
-    );
+    const episodes = await this.databaseService.find(options, {
+      key: `/episodes?limit=${limit}&orderBy=${orderBy}&sortBy=${sortBy}`,
+      ttl: 1000 * 60 * 5,
+    });
     return episodes;
   }
 

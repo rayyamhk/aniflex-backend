@@ -4,7 +4,6 @@ import {
   IsIn,
   IsInt,
   IsOptional,
-  IsPositive,
   IsString,
   IsUUID,
   Matches,
@@ -67,7 +66,8 @@ export class QueryEpisodesDTO {
   serie?: string;
 
   @IsOptional()
-  @IsPositive()
+  @IsInt()
+  @Min(0)
   @Type(() => Number)
   limit?: number = 8;
 

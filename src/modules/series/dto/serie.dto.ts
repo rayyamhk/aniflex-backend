@@ -4,7 +4,6 @@ import {
   IsIn,
   IsInt,
   IsOptional,
-  IsPositive,
   IsString,
   IsUUID,
   Matches,
@@ -77,8 +76,9 @@ export class UpdateSerieDTO {
 
 export class QuerySeriesDTO {
   @IsOptional()
+  @IsInt()
+  @Min(0)
   @Type(() => Number)
-  @IsPositive()
   limit?: number = 8;
 
   @IsOptional()
