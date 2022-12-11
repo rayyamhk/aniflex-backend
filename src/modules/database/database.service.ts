@@ -32,6 +32,18 @@ export class DatabaseService<T> {
       .collection(this.collectionName);
   }
 
+  async findOne(fields: Partial<T>, cacheSettings?: CacheSettings) {
+    if (cacheSettings) {
+      const cached = await this.cacheService.get<T>(cacheSettings.key);
+      if (cached) return cached;
+    }
+    const item = await this.collection.findOne<T>(fields);
+    if (!item) return null;
+    if (cacheSettings)
+      await this.cacheService.set(cacheSettings.key, item, cacheSettings.ttl);
+    return item;
+  }
+
   async findOneById(id: string, cacheSettings?: CacheSettings) {
     if (cacheSettings) {
       const cached = await this.cacheService.get<T>(cacheSettings.key);

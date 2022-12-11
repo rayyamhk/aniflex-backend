@@ -31,8 +31,8 @@ export class VideosController {
     private readonly utilsService: UtilsService,
   ) {}
 
-  @Public()
   @Get(':key/:filename')
+  @Public()
   async getChunk(
     @Param('key', ValidateKeyPipe) key: string,
     @Param('filename', ValidateChunkNamePipe) filename: string,

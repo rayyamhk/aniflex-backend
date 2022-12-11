@@ -1,9 +1,9 @@
 import * as fs from 'node:fs';
 import { ValidationPipe } from '@nestjs/common';
-import { NestFactory, Reflector } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core';
 import helmet from 'helmet';
+import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
-import { AuthGuard } from './guards/auth.guard';
 import { AllExceptionFilter } from './filters/allExceptions.filter';
 
 async function bootstrap() {
@@ -12,7 +12,6 @@ async function bootstrap() {
   }
 
   const app = await NestFactory.create(AppModule);
-  const reflector = app.get(Reflector);
   app.use(
     helmet({
       crossOriginResourcePolicy: false,
@@ -25,11 +24,12 @@ async function bootstrap() {
       whitelist: true, // remove unnecessary fields
     }),
   );
-  app.useGlobalGuards(new AuthGuard(reflector));
   app.enableCors({
     origin: process.env.CLIENT_ORIGIN || '*',
     methods: 'GET,POST,PUT,PATCH,DELETE',
+    credentials: true,  // accept cookies from client
   });
+  app.use(cookieParser());
   await app.listen(process.env.PORT || 8080);
 }
 bootstrap();

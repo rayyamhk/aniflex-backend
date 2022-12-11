@@ -26,8 +26,8 @@ export class ImagesController {
     private readonly utilsService: UtilsService,
   ) {}
 
-  @Public()
   @Get(':key')
+  @Public()
   async getImage(
     @Param('key', ValidateKeyPipe) key: string,
     @Res() res: Response,
